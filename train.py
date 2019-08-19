@@ -17,7 +17,7 @@ def parse_function(example_proto):
     r, g, b = tf.split(img, num_or_size_splits=3, axis=-1)
     img = tf.concat([b, g, r], axis=-1)
     img = tf.cast(img, dtype=tf.float32)
-    img = tf.subtract(img, 127.5)   # 标准化
+    img = tf.subtract(img, 127.5)  # 标准化
     img = tf.multiply(img, 0.0078125)  # 标准化
     img = tf.image.random_flip_left_right(img)
     label = tf.cast(features['label'], tf.int64)
@@ -35,7 +35,7 @@ def train(tfrecords, batch_size, lr, ckpt_save_dir, epoch, num_classes):
     print('--lr               :  ', lr)
     print('-------------------------------------------')
 
-    dataset = tf.data.TFRecordDataset(tfr) # 读取tfrecords数据
+    dataset = tf.data.TFRecordDataset(tfr)  # 读取tfrecords数据
     dataset = dataset.map(parse_function)
     dataset = dataset.shuffle(buffer_size=10000)
     dataset = dataset.batch(batch_size)
@@ -47,21 +47,22 @@ def train(tfrecords, batch_size, lr, ckpt_save_dir, epoch, num_classes):
 
     emb = resnet50(images, is_training=True)
 
-    logit = arcface_loss(embedding=emb, labels=labels, w_init=w_init_method, out_num=num_classes)  #(?,85742)
+    logit = arcface_loss(embedding=emb, labels=labels, w_init=w_init_method, out_num=num_classes)  # (?,85742)
     inference_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logit, labels=labels))
 
     p = int(512.0 / batch_size)  # 512/64 = 8
     global_step = tf.Variable(name='global_step', initial_value=0, trainable=False)
     inc_op = tf.assign_add(global_step, 1, name='increment_global_step')
     lr_steps = [p * val for val in [40000, 60000, 80000]]  # [320000, 480000, 640000]
-    lr = tf.train.piecewise_constant(global_step, boundaries=lr_steps, values=lr, name='lr_schedule') # (x, [320000, 480000, 640000], [0.001, 0.0005, 0.0003, 0.0001]) 学习率迭代形参x指的是global_step，其实就是迭代次数，boundaries一个列表，内容指的是迭代次数所在的区间，values是个列表，存放在不同区间该使用的学习率的值
-    opt = tf.train.MomentumOptimizer(learning_rate=lr, momentum=0.9)  #动量优化器
+    lr = tf.train.piecewise_constant(global_step, boundaries=lr_steps, values=lr,
+                                     name='lr_schedule')  # (x, [320000, 480000, 640000], [0.001, 0.0005, 0.0003, 0.0001]) 学习率迭代形参x指的是global_step，其实就是迭代次数，boundaries一个列表，内容指的是迭代次数所在的区间，values是个列表，存放在不同区间该使用的学习率的值
+    opt = tf.train.MomentumOptimizer(learning_rate=lr, momentum=0.9)  # 动量优化器
 
     grads = opt.compute_gradients(inference_loss)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):  # apply_gradients只会在update_ops运行之后运行
-        train_op = opt.apply_gradients(grads, global_step=global_step)  #貌似是BN里面存储mean和std用的
-    pred = tf.nn.softmax(logit)  #(?,85742)，softmax概率结果
+        train_op = opt.apply_gradients(grads, global_step=global_step)  # 貌似是BN里面存储mean和std用的
+    pred = tf.nn.softmax(logit)  # (?,85742)，softmax概率结果
     acc = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(pred, axis=1), labels), dtype=tf.float32))  # 计算正确率
 
     saver = tf.train.Saver(max_to_keep=3)
