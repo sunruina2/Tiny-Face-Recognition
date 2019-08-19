@@ -17,14 +17,15 @@ def parse_args():
                         help='path to the binary image file')
     parser.add_argument('--idx_path', default='/data/ChuyuanXiong/up/face/faces_emore/train.idx', type=str,
                         help='path to the image index path')
-    parser.add_argument('--tfrecords_file_path', default='/data/ChuyuanXiong/up/face/tfrecords', type=str,help='path to the output of tfrecords file path')
+    parser.add_argument('--tfrecords_file_path', default='/data/ChuyuanXiong/up/face/tfrecords', type=str,
+                        help='path to the output of tfrecords file path')
 
     args = parser.parse_args()
     return args
 
 
-def mx2tfrecords_old(imgidx, imgrec, args):
-    output_path = os.path.join(args.tfrecords_file_path, 'tran.tfrecords')
+def mx2tfrecords_old(imgidx, imgrec, tfrecords_file_path):
+    output_path = os.path.join(tfrecords_file_path, 'tran.tfrecords')
     writer = tf.python_io.TFRecordWriter(output_path)
     for i in imgidx:
         img_info = imgrec.read_idx(i)
@@ -45,8 +46,8 @@ def mx2tfrecords_old(imgidx, imgrec, args):
     writer.close()
 
 
-def mx2tfrecords(imgidx, imgrec, args):
-    output_path = os.path.join(args.tfrecords_file_path, 'tran.tfrecords')
+def mx2tfrecords(imgidx, imgrec, tfrecords_file_path):
+    output_path = os.path.join(tfrecords_file_path, 'tran.tfrecords')
     writer = tf.python_io.TFRecordWriter(output_path)
     for i in imgidx:
         img_info = imgrec.read_idx(i)
@@ -73,7 +74,7 @@ def parse_function(example_proto):
     img = tf.concat([b, g, r], axis=-1)
     img = tf.cast(img, dtype=tf.float32)
     img = tf.subtract(img, 127.5)
-    img = tf.multiply(img,  0.0078125)
+    img = tf.multiply(img, 0.0078125)
     img = tf.image.random_flip_left_right(img)
     label = tf.cast(features['label'], tf.int64)
     return img, label
@@ -81,10 +82,13 @@ def parse_function(example_proto):
 
 if __name__ == '__main__':
     # define parameters
+    # $ python3 mx2tfrecords.py --bin_path '/Users/finup/Desktop/faces_emore/train.rec' --idx_path '/Users/finup/Desktop/faces_emore/train.idx' --tfrecords_file_path '/Users/finup/Desktop/faces_emore/tfrecords'
+    bin_path = '/Users/finup/Desktop/faces_emore/train.rec'
+    idx_path = '/Users/finup/Desktop/faces_emore/train.idx'
+    tfrecords_file_pat = '/Users/finup/Desktop/faces_emore/tfrecords'
     id2range = {}
     data_shape = (3, 112, 112)
-    args = parse_args()
-    imgrec = mx.recordio.MXIndexedRecordIO(args.idx_path, args.bin_path, 'r')
+    imgrec = mx.recordio.MXIndexedRecordIO(idx_path, bin_path, 'r')
     s = imgrec.read_idx(0)
     header, _ = mx.recordio.unpack(s)
     print(header.label)
@@ -98,12 +102,12 @@ if __name__ == '__main__':
     print('id2range', len(id2range))
 
     # generate tfrecords
-    mx2tfrecords(imgidx, imgrec, args)
+    mx2tfrecords(imgidx, imgrec, tfrecords_file_pat)
 
     # config = tf.ConfigProto(allow_soft_placement=True)
     # sess = tf.Session(config=config)
     # # training datasets api config
-    # tfrecords_f = os.path.join(args.tfrecords_file_path, 'tran.tfrecords')
+    # tfrecords_f = os.path.join(tfrecords_file_path, 'tran.tfrecords')
     # dataset = tf.data.TFRecordDataset(tfrecords_f)
     # dataset = dataset.map(parse_function)
     # dataset = dataset.shuffle(buffer_size=30000)

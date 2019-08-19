@@ -172,7 +172,7 @@ def evaluate(embeddings, actual_issame, nrof_folds=10, pca=0):
 def data_iter(datasets, batch_size):
     data_num = datasets.shape[0]
     for i in range(0, data_num, batch_size):
-        yield datasets[i:min(i+batch_size, data_num), ...]
+        yield datasets[i:min(i + batch_size, data_num), ...]
 
 
 def test(data_set, sess, embedding_tensor, batch_size, label_shape=None, feed_dict=None, input_placeholder=None):
@@ -197,7 +197,7 @@ def test(data_set, sess, embedding_tensor, batch_size, label_shape=None, feed_di
         embeddings = None
         feed_dict.setdefault(input_placeholder, None)
         for idx, data in enumerate(data_iter(datas, batch_size)):
-            data_tmp = data.copy()    # fix issues #4
+            data_tmp = data.copy()  # fix issues #4
             data_tmp -= 127.5
             data_tmp *= 0.0078125
             feed_dict[input_placeholder] = data_tmp
@@ -209,10 +209,11 @@ def test(data_set, sess, embedding_tensor, batch_size, label_shape=None, feed_di
             if embeddings is None:
                 embeddings = np.zeros((datas.shape[0], _embeddings.shape[1]))
             try:
-                embeddings[idx*batch_size:min((idx+1)*batch_size, datas.shape[0]), ...] = _embeddings
+                embeddings[idx * batch_size:min((idx + 1) * batch_size, datas.shape[0]), ...] = _embeddings
             except ValueError:
-                print('idx*batch_size value is %d min((idx+1)*batch_size, datas.shape[0]) %d, batch_size %d, data.shape[0] %d' %
-                      (idx*batch_size, min((idx+1)*batch_size, datas.shape[0]), batch_size, datas.shape[0]))
+                print(
+                    'idx*batch_size value is %d min((idx+1)*batch_size, datas.shape[0]) %d, batch_size %d, data.shape[0] %d' %
+                    (idx * batch_size, min((idx + 1) * batch_size, datas.shape[0]), batch_size, datas.shape[0]))
                 print('embedding shape is ', _embeddings.shape)
         embeddings_list.append(embeddings)
 
@@ -241,7 +242,8 @@ def test(data_set, sess, embedding_tensor, batch_size, label_shape=None, feed_di
 def ver_test(ver_list, ver_name_list, nbatch, sess, embedding_tensor, batch_size, feed_dict, input_placeholder):
     results = []
     for i in range(len(ver_list)):
-        acc1, std1, acc2, std2, xnorm, embeddings_list = test(data_set=ver_list[i], sess=sess, embedding_tensor=embedding_tensor,
+        acc1, std1, acc2, std2, xnorm, embeddings_list = test(data_set=ver_list[i], sess=sess,
+                                                              embedding_tensor=embedding_tensor,
                                                               batch_size=batch_size, feed_dict=feed_dict,
                                                               input_placeholder=input_placeholder)
         print('[%s][%d]XNorm: %f' % (ver_name_list[i], nbatch, xnorm))
