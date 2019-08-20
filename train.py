@@ -2,10 +2,13 @@ import tensorflow as tf
 import numpy as np
 import argparse
 import os
-
+import time
 from resnet50 import resnet50
 from loss import arcface_loss
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+gpuConfig = tf.ConfigProto(allow_soft_placement=True)
+gpuConfig.gpu_options.allow_growth = True  
 
 def parse_function(example_proto):
     features = {'image_raw': tf.FixedLenFeature([], tf.string),
@@ -66,59 +69,73 @@ def train(tfrecords, batch_size, lr, ckpt_save_dir, epoch, num_classes):
     acc = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(pred, axis=1), labels), dtype=tf.float32))  # 计算正确率
 
     saver = tf.train.Saver(max_to_keep=3)
-    config = tf.ConfigProto()
-    config.allow_soft_placement = True
-    config.gpu_options.allow_growth = True
-
     counter = 0
-    with tf.Session(config=config) as sess:
-        sess.run(tf.global_variables_initializer())
-        sess.run(tf.local_variables_initializer())
-        # saver.restore(sess, '/data/ChuyuanXiong/backup/face_real330_ckpt/Face_vox_iter_271800.ckpt')
-        for i in range(epoch):
-            sess.run(iterator.initializer)
+    with tf.device('/gpu:0'):
+    	with tf.Session(config=gpuConfig) as sess:
+            sess.run(tf.global_variables_initializer())
+            sess.run(tf.local_variables_initializer())
 
-            while True:
-                try:
-                    image_train, label_train = sess.run(next_element)
-                    # print(image_train.shape, label_train.shape) 
-                    # print(label_train)
-                    feed_dict = {images: image_train, labels: label_train}
-                    _, loss_val, acc_val, _ = sess.run([train_op, inference_loss, acc, inc_op], feed_dict=feed_dict)
 
-                    counter += 1
-                    print('counter: ', counter, 'loss_val', loss_val, 'acc: ', acc_val)
-                    if counter % 100 == 0:
-                        print('counter: ', counter, 'loss_val', loss_val, 'acc: ', acc_val)
-                        filename = 'Face_vox_iter_{:d}'.format(counter) + '.ckpt'
-                        filename = os.path.join(ckpt_save_dir, filename)
-                        saver.save(sess, filename)
-                except tf.errors.OutOfRangeError:
-                    print('End of epoch %d', i)
-                    break
+	    # saver.restore(sess, '/data/ChuyuanXiong/backup/face_real330_ckpt/Face_vox_iter_271800.ckpt')
+            for i in range(epoch):
+                sess.run(iterator.initializer)
+    
+                while True:
+                    try:
+                        t1 = time.localtime()
+                        image_train, label_train = sess.run(next_element)
+                        t2 = time.localtime()
+                        print(counter, t2-t1, "   next_element")
+                        # print(image_train.shape, label_train.shape)
+                        # print(label_train)
+                        feed_dict = {images: image_train, labels: label_train}
+                        _, loss_val, acc_val, _ = sess.run([train_op, inference_loss, acc, inc_op], feed_dict=feed_dict)
+
+                        t3 = time.localtime()
+                        print(counter, t3-t2, "   train_op, inference_loss, acc, inc_op")
+    
+                        counter += 1
+    
+                        if counter % 2 == 0:
+                            time_h = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                            log_c = 'time：' + time_h + ' counter:' + str(counter) + ' loss_val:' + str(
+                                loss_val) + ' acc:' + str(acc_val)
+                            print(type(log_c), log_c)
+                            fp = open("iter_log.log", "a")
+                            fp.write(log_c + "\n")
+                            fp.close()
+    
+                        if counter % 100 == 0:
+                            filename = 'Face_vox_iter_{:d}'.format(counter) + '.ckpt'
+                            filename = os.path.join(ckpt_save_dir, filename)
+                            saver.save(sess, filename)
+    
+                    except tf.errors.OutOfRangeError:
+                        print('End of epoch %d', i)
+                        break
 
 
 if __name__ == '__main__':
-    # $ python3 train.py --tfrecords '/Users/finup/Desktop/faces_emore/tfrecords/tran.tfrecords' --batch_size 64 --num_classes 85742 --lr [0.001, 0.0005, 0.0003, 0.0001] --ckpt_save_dir '/Users/finup/Desktop/faces_emore//face_real403_ckpt' --epoch 10000
+    # $ python3 train.py --tfrecords '/Users/finup/Desktop/faces_emore/tfrecords/tran.tfrecords' --batch_size 64 --num_classes 85742 --lr [0.001, 0.0005, 0.0003, 0.0001] --ckpt_save_dir '/Users/finup/Desktop/faces_emore/face_real403_ckpt' --epoch 10000
 
-    tfrecords1 = '/Users/finup/Desktop/faces_emore/tfrecords/tran.tfrecords'
-    batch_size1 = 64
-    num_classes1 = 85742
-    lr1 = [0.001, 0.0005, 0.0003, 0.0001]
-    ckpt_save_dir1 = '/Users/finup/Desktop/faces_emore//face_real403_ckpt'
-    epoch1 = 10000
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-    train(tfrecords1, batch_size1, lr1, ckpt_save_dir1, epoch1, num_classes1)
-
-    # parser = argparse.ArgumentParser()
-    # # Train
-    # parser.add_argument('--tfrecords', default='/Users/finup/Desktop/faces_emore/tfrecords/tran.tfrecords', required=True)
-    # parser.add_argument('--batch_size', default=64, type=int, required=True)
-    # parser.add_argument('--num_classes', default=85742, type=int, required=True)
-    # parser.add_argument('--lr', default=[0.001, 0.0005, 0.0003, 0.0001], required=True)
-    # parser.add_argument('--ckpt_save_dir', default='/data/ChuyuanXiong/backup/face_real403_ckpt', required=True)
-    # parser.add_argument('--epoch', default=10000, type=int, required=False)
-    # parser.set_defaults(func=train)
-    # opt = parser.parse_args()
+    # tfrecords1 = '/Users/finup/Desktop/faces_emore/tfrecords/tran.tfrecords'
+    # batch_size1 = 64
+    # num_classes1 = 85742
+    # lr1 = [0.001, 0.0005, 0.0003, 0.0001]
+    # ckpt_save_dir1 = '/Users/finup/Desktop/faces_emore/face_real403_ckpt'
+    # epoch1 = 10000
     # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-    # opt.func(opt)
+    # train(tfrecords1, batch_size1, lr1, ckpt_save_dir1, epoch1, num_classes1)
+
+    parser = argparse.ArgumentParser()
+    # Train
+    parser.add_argument('--tfrecords', default='/Users/finup/Desktop/faces_emore/tfrecords/tran.tfrecords',
+                        required=True)
+    parser.add_argument('--batch_size', default=64, type=int, required=True)
+    parser.add_argument('--num_classes', default=85742, type=int, required=True)
+    parser.add_argument('--lr', default=[0.001, 0.0005, 0.0003, 0.0001], required=False)
+    parser.add_argument('--ckpt_save_dir', default='/data/ChuyuanXiong/backup/face_real403_ckpt', required=True)
+    parser.add_argument('--epoch', default=10000, type=int, required=False)
+    parser.set_defaults(func=train)
+    opt = parser.parse_args()
+    opt.func(opt.tfrecords, opt.batch_size, opt.lr, opt.ckpt_save_dir, opt.epoch, opt.num_classes)

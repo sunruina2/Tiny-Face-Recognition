@@ -23,7 +23,7 @@ $ python3 mx2tfrecords.py --bin_path '/Users/finup/Desktop/faces_emore/train.rec
 Train:
 
 ```
-$ python3 train.py --tfrecords '/Users/finup/Desktop/faces_emore/tfrecords/tran.tfrecords' --batch_size 64 --num_classes 85742 --lr [0.001, 0.0005, 0.0003, 0.0001] --ckpt_save_dir '/Users/finup/Desktop/faces_emore//face_real403_ckpt' --epoch 10000
+python3 train.py --tfrecords '/home/sunruina/face_recognition/data_set/ms_celeb_arcpaper_tfrecords/tran.tfrecords' --batch_size 64 --num_classes 85742 --ckpt_save_dir '/home/sunruina/face_recognition/data_set/ms_celeb_arcpaper_tfrecords/face_real403_ckpt' --epoch 10000
 ```
 
 Test:
