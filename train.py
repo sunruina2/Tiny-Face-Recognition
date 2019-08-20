@@ -5,10 +5,12 @@ import os
 import time
 from resnet50 import resnet50
 from loss import arcface_loss
+from tensorflow.python.client import timeline
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 gpuConfig = tf.ConfigProto(allow_soft_placement=True)
-gpuConfig.gpu_options.allow_growth = True  
+gpuConfig.gpu_options.allow_growth = True
+
 
 def parse_function(example_proto):
     features = {'image_raw': tf.FixedLenFeature([], tf.string),
@@ -71,31 +73,41 @@ def train(tfrecords, batch_size, lr, ckpt_save_dir, epoch, num_classes):
     saver = tf.train.Saver(max_to_keep=3)
     counter = 0
     with tf.device('/gpu:0'):
-    	with tf.Session(config=gpuConfig) as sess:
+        with tf.Session(config=gpuConfig) as sess:
             sess.run(tf.global_variables_initializer())
             sess.run(tf.local_variables_initializer())
 
-
-	    # saver.restore(sess, '/data/ChuyuanXiong/backup/face_real330_ckpt/Face_vox_iter_271800.ckpt')
+            # saver.restore(sess, '/data/ChuyuanXiong/backup/face_real330_ckpt/Face_vox_iter_271800.ckpt')
             for i in range(epoch):
                 sess.run(iterator.initializer)
-    
+
                 while True:
                     try:
-                        t1 = time.localtime()
+
+                        t1 = time.time()
                         image_train, label_train = sess.run(next_element)
-                        t2 = time.localtime()
-                        print(counter, t2-t1, "   next_element")
+                        t2 = time.time()
+                        print(counter, t2 - t1, "   next_element")
                         # print(image_train.shape, label_train.shape)
                         # print(label_train)
                         feed_dict = {images: image_train, labels: label_train}
-                        _, loss_val, acc_val, _ = sess.run([train_op, inference_loss, acc, inc_op], feed_dict=feed_dict)
 
-                        t3 = time.localtime()
-                        print(counter, t3-t2, "   train_op, inference_loss, acc, inc_op")
-    
+                        options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                        run_metadata = tf.RunMetadata()
+
+                        _, loss_val, acc_val, _ = sess.run([train_op, inference_loss, acc, inc_op], feed_dict=feed_dict,
+                                                           options=options, run_metadata=run_metadata)
+
+                        fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+                        chrome_trace = fetched_timeline.generate_chrome_trace_format()
+                        with open('timeline.json', 'w') as f:
+                            f.write(chrome_trace)
+
+                        t3 = time.time()
+                        print(counter, t3 - t2, "   train_op, inference_loss, acc, inc_op")
+
                         counter += 1
-    
+
                         if counter % 2 == 0:
                             time_h = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                             log_c = 'time：' + time_h + ' counter:' + str(counter) + ' loss_val:' + str(
@@ -104,12 +116,12 @@ def train(tfrecords, batch_size, lr, ckpt_save_dir, epoch, num_classes):
                             fp = open("iter_log.log", "a")
                             fp.write(log_c + "\n")
                             fp.close()
-    
+
                         if counter % 100 == 0:
                             filename = 'Face_vox_iter_{:d}'.format(counter) + '.ckpt'
                             filename = os.path.join(ckpt_save_dir, filename)
                             saver.save(sess, filename)
-    
+
                     except tf.errors.OutOfRangeError:
                         print('End of epoch %d', i)
                         break
