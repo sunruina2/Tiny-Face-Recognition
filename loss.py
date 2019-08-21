@@ -14,7 +14,7 @@ def arcface_loss(embedding, labels, out_num, w_init=None, s=64.,
     '''
     cos_m = math.cos(m)
     sin_m = math.sin(m)  # cos(θ+m)=cosθcosm−sinθsinm
-    mm = sin_m * m  # issue 1 ?
+    # mm = sin_m * m  # issue 1 ?
     threshold = math.cos(math.pi - m)  # ?
     with tf.variable_scope('arcface_loss'):
         # inputs and weights norm
@@ -28,20 +28,20 @@ def arcface_loss(embedding, labels, out_num, w_init=None, s=64.,
         weights_norm = tf.norm(weights, axis=0, keep_dims=True)  # (1, 85742) ,特征值取出后进行归一化，去除长度影响，只保留角度信息。
         weights = tf.div(weights, weights_norm, name='norm_weights')  # (512, 85742)/(1, 85742)=(512, 85742)
         # cos(theta+m)
-        cos_t = tf.matmul(embedding, weights, name='cos_t')  # 点乘 x*w =(？,512) *(512, 85742) = (?,85742)
+        cos_t = tf.matmul(embedding, weights, name='cos_t')  # 点乘 x*w =(？,512) *(512, 85742) = (?,85742),由于x和权重都做了归一化所以，X*W=|x|*|w|cos = |1||1|cos=cos
         cos_t2 = tf.square(cos_t, name='cos_2')  # (?,85742)
-        sin_t2 = tf.subtract(1., cos_t2, name='sin_2')  # (?,85742)
-        sin_t = tf.sqrt(sin_t2, name='sin_t')  # (?,85742)
+        sin_t2 = tf.subtract(1., cos_t2, name='sin_2')  # (?,85742) (1)三角函数公式 sin方=1-cos方
+        sin_t = tf.sqrt(sin_t2, name='sin_t')  # (?,85742) ，(2)从而得到sin = 根号(sin2)
         cos_mt = s * tf.subtract(tf.multiply(cos_t, cos_m), tf.multiply(sin_t, sin_m),
-                                 name='cos_mt')  # (?,85742) cos*cos-sin*sin???
+                                 name='cos_mt')  # (?,85742) cos(t+m)=cos_t * cos_m - sin_t * sin_m ，即coscos - sinsin
 
-        # this condition controls the theta+m should in range [0, pi]
+        # this condition controls the theta+m should in range [0, pi] ？？？
         #      0<=theta+m<=pi
         #     -m<=theta<=pi-m
         cond_v = cos_t - threshold  # (?,85742)
         cond = tf.cast(tf.nn.relu(cond_v, name='if_else'), dtype=tf.bool)  # 布尔量，(?,85742)，正数为True，其他为False
 
-        keep_val = s * (cos_t - mm)  # (?,85742)
+        keep_val = s * (cos_t - sin_m * m)  # (?,85742)  ？？
         cos_mt_temp = tf.where(cond, cos_mt,
                                keep_val)  # 在cos_mt里面挑选的cond为True位置，在keep_val里面挑选的cond为Falese位置，对应位置放数-组成新的矩阵
 
