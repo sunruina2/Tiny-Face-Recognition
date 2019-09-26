@@ -3,11 +3,11 @@ import numpy as np
 import argparse
 import os
 import time
-from resnet50 import resnet50
+from resnet101 import resnet50
 from loss import arcface_loss
 from tensorflow.python.client import timeline
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 gpuConfig = tf.ConfigProto(allow_soft_placement=True)
 gpuConfig.gpu_options.allow_growth = True
 
@@ -119,7 +119,7 @@ def train(tfrecords, batch_size, lr, ckpt_save_dir, epoch, num_classes):
                             fp.write(log_c + "\n")
                             fp.close()
 
-                        if counter % 5000 == 0:
+                        if counter % 10000 == 0:
                             filename = 'Face_vox_iter_{:d}'.format(counter) + '.ckpt'
                             filename = os.path.join(ckpt_save_dir, filename)
                             saver.save(sess, filename)
