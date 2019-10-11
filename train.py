@@ -3,7 +3,7 @@ import numpy as np
 import argparse
 import os
 import time
-from resnet101 import resnet50
+from resnet50 import resnet50
 from loss import arcface_loss
 from tensorflow.python.client import timeline
 
