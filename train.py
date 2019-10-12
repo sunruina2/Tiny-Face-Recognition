@@ -7,7 +7,7 @@ from resnet101 import resnet50
 from loss import arcface_loss
 from tensorflow.python.client import timeline
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 gpuConfig = tf.ConfigProto(allow_soft_placement=True)
 gpuConfig.gpu_options.allow_growth = True
 
