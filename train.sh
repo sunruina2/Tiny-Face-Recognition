@@ -1,1 +1,1 @@
-python3 train.py --tfrecords /data/sunruina/face_recognition/data_set/ms_celeb_arcpaper_tfrecords/tran.tfrecords --batch_size 128 --num_classes 85742 --ckpt_save_dir /data/sunruina/face_recognition/data_set/ms_celeb_arcpaper_tfrecords/tiny_model_128 --epoch 10000
+python3 train.py --tfrecords /data/sunruina/face_recognition/data_set/ms_celeb_arcpaper_tfrecords/tran.tfrecords --batch_size 128 --num_classes 85742 --ckpt_save_dir /data/sunruina/face_recognition/data_set/ms_celeb_arcpaper_tfrecords/tiny_model_128 --epoch 200000

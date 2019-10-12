@@ -7,7 +7,7 @@ from resnet50 import resnet50
 from loss import arcface_loss
 from tensorflow.python.client import timeline
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 gpuConfig = tf.ConfigProto(allow_soft_placement=True)
 gpuConfig.gpu_options.allow_growth = True
 
@@ -70,7 +70,7 @@ def train(tfrecords, batch_size, lr, ckpt_save_dir, epoch, num_classes):
     pred = tf.nn.softmax(logit)  # (?,85742)，softmax概率结果
     acc = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(pred, axis=1), labels), dtype=tf.float32))  # 计算正确率
 
-    saver = tf.train.Saver(max_to_keep=3)
+    saver = tf.train.Saver(max_to_keep=5)
     counter = 0
     with tf.Session(config=gpuConfig) as sess:
         sess.run(tf.global_variables_initializer())
@@ -109,16 +109,16 @@ def train(tfrecords, batch_size, lr, ckpt_save_dir, epoch, num_classes):
 
                     counter += 1
 
-                    if counter % 10 == 0:
+                    if counter % 100 == 0:
                         time_h = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                         log_c = 'time：' + time_h + ' counter:' + str(counter) + ' loss_val:' + str(
                             loss_val) + ' acc:' + str(acc_val)
-                        print(type(log_c), log_c)
+                        print(log_c)
                         fp = open("iter_log.log", "a")
                         fp.write(log_c + "\n")
                         fp.close()
 
-                    if counter % 10000 == 0:
+                    if counter % 50000 == 0:
                         filename = 'Face_vox_iter_{:d}'.format(counter) + '.ckpt'
                         filename = os.path.join(ckpt_save_dir, filename)
                         saver.save(sess, filename)

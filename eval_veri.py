@@ -79,7 +79,7 @@ if __name__ == '__main__':
     gpu_config = tf.ConfigProto()
     gpu_config.allow_soft_placement = True
     gpu_config.gpu_options.allow_growth = True
-    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
     counter = 0
     saver = tf.train.Saver(var_list=var_list)
