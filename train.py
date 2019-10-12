@@ -72,61 +72,60 @@ def train(tfrecords, batch_size, lr, ckpt_save_dir, epoch, num_classes):
 
     saver = tf.train.Saver(max_to_keep=3)
     counter = 0
-    with tf.device('/gpu:0'):
-        with tf.Session(config=gpuConfig) as sess:
-            sess.run(tf.global_variables_initializer())
-            sess.run(tf.local_variables_initializer())
+    with tf.Session(config=gpuConfig) as sess:
+        sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())
 
-            # saver.restore(sess, '/data/ChuyuanXiong/backup/face_real330_ckpt/Face_vox_iter_271800.ckpt')
-            for i in range(epoch):
-                sess.run(iterator.initializer)
+        # saver.restore(sess, '/data/ChuyuanXiong/backup/face_real330_ckpt/Face_vox_iter_271800.ckpt')
+        for i in range(epoch):
+            sess.run(iterator.initializer)
 
-                while True:
-                    try:
+            while True:
+                try:
 
-                        # t1 = time.time()
-                        image_train, label_train = sess.run(next_element)
-                        # t2 = time.time()
-                        # print(counter, t2 - t1, "   next_element")
-                        # print(image_train.shape, label_train.shape)
-                        # print(label_train)
-                        feed_dict = {images: image_train, labels: label_train}
+                    # t1 = time.time()
+                    image_train, label_train = sess.run(next_element)
+                    # t2 = time.time()
+                    # print(counter, t2 - t1, "   next_element")
+                    # print(image_train.shape, label_train.shape)
+                    # print(label_train)
+                    feed_dict = {images: image_train, labels: label_train}
 
-                        # options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-                        # run_metadata = tf.RunMetadata()
+                    # options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                    # run_metadata = tf.RunMetadata()
 
-                        # _, loss_val, acc_val, _ = sess.run([train_op, inference_loss, acc, inc_op], feed_dict=feed_dict,
-                        #                                    options=options, run_metadata=run_metadata)
+                    # _, loss_val, acc_val, _ = sess.run([train_op, inference_loss, acc, inc_op], feed_dict=feed_dict,
+                    #                                    options=options, run_metadata=run_metadata)
 
-                        _, loss_val, acc_val, _ = sess.run([train_op, inference_loss, acc, inc_op], feed_dict=feed_dict)
+                    _, loss_val, acc_val, _ = sess.run([train_op, inference_loss, acc, inc_op], feed_dict=feed_dict)
 
-                        # fetched_timeline = timeline.Timeline(run_metadata.step_stats)
-                        # chrome_trace = fetched_timeline.generate_chrome_trace_format()
-                        # with open('timeline.json', 'w') as f:
-                        #     f.write(chrome_trace)
+                    # fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+                    # chrome_trace = fetched_timeline.generate_chrome_trace_format()
+                    # with open('timeline.json', 'w') as f:
+                    #     f.write(chrome_trace)
 
-                        # t3 = time.time()
-                        # print(counter, t3 - t2, "   train_op, inference_loss, acc, inc_op")
+                    # t3 = time.time()
+                    # print(counter, t3 - t2, "   train_op, inference_loss, acc, inc_op")
 
-                        counter += 1
+                    counter += 1
 
-                        if counter % 10 == 0:
-                            time_h = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-                            log_c = 'time：' + time_h + ' counter:' + str(counter) + ' loss_val:' + str(
-                                loss_val) + ' acc:' + str(acc_val)
-                            print(type(log_c), log_c)
-                            fp = open("iter_log.log", "a")
-                            fp.write(log_c + "\n")
-                            fp.close()
+                    if counter % 10 == 0:
+                        time_h = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                        log_c = 'time：' + time_h + ' counter:' + str(counter) + ' loss_val:' + str(
+                            loss_val) + ' acc:' + str(acc_val)
+                        print(type(log_c), log_c)
+                        fp = open("iter_log.log", "a")
+                        fp.write(log_c + "\n")
+                        fp.close()
 
-                        if counter % 10000 == 0:
-                            filename = 'Face_vox_iter_{:d}'.format(counter) + '.ckpt'
-                            filename = os.path.join(ckpt_save_dir, filename)
-                            saver.save(sess, filename)
+                    if counter % 10000 == 0:
+                        filename = 'Face_vox_iter_{:d}'.format(counter) + '.ckpt'
+                        filename = os.path.join(ckpt_save_dir, filename)
+                        saver.save(sess, filename)
 
-                    except tf.errors.OutOfRangeError:
-                        print('End of epoch %d', i)
-                        break
+                except tf.errors.OutOfRangeError:
+                    print('End of epoch %d', i)
+                    break
 
 
 if __name__ == '__main__':
